@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saliba · Financial Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0A0A;--surface:#141414;--surface2:#1C1C1C;--border:#2A2A2A;--border2:#333;
+  --text:#F5F5F0;--muted:#888880;--muted2:#555550;
+  --gold:#C8A96E;--gold-dim:#8A7248;
+  --red:#E05A5A;--red-dim:#7A2A2A;
+  --green:#4CAF7D;--green-dim:#2A5A40;
+  --amber:#E8A040;
+}
+html{font-size:14px;background:var(--bg);color:var(--text)}
+body{font-family:Inter,sans-serif;min-height:100vh;font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}
+
+/* ── LAYOUT ── */
+.shell{max-width:1040px;margin:0 auto;padding:0 20px 80px}
+
+/* ── TOP BAR ── */
+.topbar{padding:20px 0 0;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:3px}
+.brand-name{font-family:"DM Serif Display",serif;font-size:1.5rem;color:var(--text);letter-spacing:-.3px}
+.brand-sub{font-size:.7rem;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+.last-updated{font-size:.65rem;color:var(--muted2);padding:6px 10px;border:1px solid var(--border);border-radius:4px}
+
+/* ── ACCOUNT TABS ── */
+.acct-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-top:24px}
+.acct-tab{font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:10px 20px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none}
+.acct-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.acct-tab:hover:not(.active){color:var(--text)}
+
+/* ── MONTH SCRUBBER ── */
+.month-rail{padding:16px 0 0;position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:1px solid var(--border);margin-bottom:24px}
+.month-rail-inner{display:flex;gap:2px;padding-bottom:0;overflow-x:auto;scrollbar-width:none}
+.month-rail-inner::-webkit-scrollbar{display:none}
+.month-btn{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px 10px;cursor:pointer;border-radius:4px 4px 0 0;border:none;background:none;color:var(--muted);transition:all .15s;min-width:68px;position:relative}
+.month-btn:hover:not(.active){color:var(--text)}
+.month-btn.active{background:var(--surface);color:var(--text)}
+.month-btn.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:1px;background:var(--bg)}
+.month-label{font-size:.62rem;font-weight:600;letter-spacing:.6px;text-transform:uppercase}
+.month-bar{width:44px;height:24px;display:flex;align-items:flex-end;gap:1px}
+.month-bar-col{flex:1;border-radius:1px 1px 0 0;transition:opacity .2s}
+.month-bar-col.income{background:var(--green);opacity:.5}
+.month-bar-col.expense{background:var(--red);opacity:.5}
+.month-btn.active .month-bar-col{opacity:1}
+.month-amt{font-size:.6rem;color:var(--muted2)}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 18px}
+.stat-label{font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+.stat-value{font-family:"DM Serif Display",serif;font-size:1.65rem;line-height:1;color:var(--text)}
+.stat-value.positive{color:var(--green)}
+.stat-value.negative{color:var(--red)}
+.stat-value.gold{color:var(--gold)}
+.stat-sub{font-size:.62rem;color:var(--muted2);margin-top:5px}
+
+/* ── TWO COLUMN ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 22px}
+.card-title{font-size:.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.card-title-right{font-family:"DM Serif Display",serif;font-size:.9rem;color:var(--text);letter-spacing:0;text-transform:none}
+
+/* ── CATEGORY BARS ── */
+.cat-bar-list{display:flex;flex-direction:column;gap:11px}
+.cat-bar-item{display:flex;flex-direction:column;gap:4px}
+.cat-bar-top{display:flex;justify-content:space-between;align-items:baseline}
+.cat-bar-name{font-size:.72rem;color:var(--text);display:flex;align-items:center;gap:6px}
+.cat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.cat-bar-right{font-size:.72rem;color:var(--text);font-weight:600}
+.cat-bar-track{height:3px;background:var(--border2);border-radius:99px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.16,1,.3,1)}
+
+/* ── FLOW TABLE (income vs spending) ── */
+.flow-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.flow-row:last-child{border-bottom:none}
+.flow-row.total{padding-top:12px;margin-top:2px}
+.flow-label{font-size:.73rem;color:var(--muted)}
+.flow-label.total{color:var(--text);font-weight:600}
+.flow-amount{font-size:.73rem;font-weight:600}
+.flow-amount.income{color:var(--green)}
+.flow-amount.expense{color:var(--red)}
+.flow-amount.net-pos{color:var(--green)}
+.flow-amount.net-neg{color:var(--red)}
+.flow-amount.neutral{color:var(--muted)}
+
+/* ── TX LIST ── */
+.tx-controls{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.tx-btn{font-size:.62rem;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:5px 12px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:all .15s}
+.tx-btn.active{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.tx-search{flex:1;min-width:140px;font-family:Inter,sans-serif;font-size:.72rem;padding:6px 10px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text)}
+.tx-search::placeholder{color:var(--muted2)}
+.tx-search:focus{outline:none;border-color:var(--border2)}
+.tx-list-wrap{display:flex;flex-direction:column}
+.tx-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}
+.tx-row:last-child{border-bottom:none}
+.tx-left{flex:1;min-width:0}
+.tx-date{font-size:.6rem;color:var(--muted2);margin-bottom:2px}
+.tx-name{font-size:.75rem;font-weight:500;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-tags{display:flex;gap:5px;flex-wrap:wrap}
+.tx-cat{font-size:.57rem;font-weight:600;letter-spacing:.3px;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.tx-acct{font-size:.57rem;padding:2px 7px;border-radius:3px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.tx-flag{font-size:.57rem;padding:2px 7px;border-radius:3px;background:#3A2800;color:#E8A040;border:1px solid #5A3800}
+.tx-amount{font-family:"DM Serif Display",serif;font-size:1rem;flex-shrink:0;text-align:right}
+.tx-amount.debit{color:var(--text)}
+.tx-amount.credit{color:var(--green)}
+.tx-empty{text-align:center;padding:32px;color:var(--muted2);font-size:.75rem}
+
+/* ── RECOMMENDATIONS ── */
+.rec-section{margin-top:24px}
+.rec-header{font-size:.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.rec-header::after{content:"";flex:1;height:1px;background:var(--border)}
+.rec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rec-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 18px;border-left:3px solid var(--border)}
+.rec-card.critical{border-left-color:var(--red)}
+.rec-card.warning{border-left-color:var(--amber)}
+.rec-card.positive{border-left-color:var(--green)}
+.rec-card.info{border-left-color:var(--gold)}
+.rec-tag{font-size:.55rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.rec-card.critical .rec-tag{color:var(--red)}
+.rec-card.warning .rec-tag{color:var(--amber)}
+.rec-card.positive .rec-tag{color:var(--green)}
+.rec-card.info .rec-tag{color:var(--gold)}
+.rec-title{font-family:"DM Serif Display",serif;font-size:.95rem;color:var(--text);margin-bottom:6px;line-height:1.3}
+.rec-body{font-size:.68rem;color:var(--muted);line-height:1.6}
+.rec-body strong{color:var(--text);font-weight:600}
+
+/* ── SECTION DIVIDER ── */
+.section-divider{height:1px;background:var(--border);margin:20px 0}
+
+/* ── NET BAR ── */
+.net-bar-wrap{margin:12px 0 4px}
+.net-bar-labels{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted);margin-bottom:5px}
+.net-bar-track{height:6px;background:var(--border2);border-radius:99px;overflow:hidden;display:flex}
+.net-bar-income{background:var(--green);height:100%;transition:width .6s}
+.net-bar-expense{background:var(--red);height:100%;transition:width .6s}
+
+/* ── FLAG BADGE ── */
+.flag-inline{font-size:.6rem;color:var(--amber);margin-left:6px}
+
+@media(max-width:760px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .two-col,.three-col{grid-template-columns:1fr}
+  .rec-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-name">Saliba · Financial Report</div>
+    <div class="brand-sub">Wells Fargo Debit &amp; Savings · Jan 2026 – Jun 2026</div>
+  </div>
+  <div class="last-updated">Updated Jun 15, 2026</div>
+</div>
+
+<div class="acct-tabs" id="acct-tabs"></div>
+<div class="month-rail"><div class="month-rail-inner" id="month-rail"></div></div>
+<div id="content"></div>
+
+</div>
+
+<script>
+const RAW = [{"date": "2026-06-12", "desc": "COSTAS MEDITERRANEAN HOOVER", "type": "Debit", "amount": 96.03, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-11", "desc": "SQ *BERRIES BY CRYSTAL BIRMINGHAM", "type": "Debit", "amount": 13.2, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-11", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 16.47, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-06-11", "desc": "CHEVRON 0384590 HOOVER", "type": "Debit", "amount": 27.12, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-06-11", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL NEW YORK CITY", "type": "Credit", "amount": 471.6, "cat": "Venmo", "account": "Debit"}, {"date": "2026-06-11", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 100.2, "cat": "Payroll", "account": "Debit"}, {"date": "2026-06-11", "desc": "CHICK-FIL-A #01794 ALABASTER", "type": "Debit", "amount": 17.47, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-11", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 117.9, "cat": "Venmo", "account": "Debit"}, {"date": "2026-06-10", "desc": "THE ROUGAROUX BIRMINGHAM", "type": "Debit", "amount": 86.45, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-10", "desc": "DD *DOORDASH MCDONALDS DOORDASH.COM", "type": "Debit", "amount": 26.36, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-10", "desc": "DOLLAR GENERAL #14177 DG 141774600 5TH A BIRMINGHAM", "type": "Debit", "amount": 34.85, "cat": "Groceries", "account": "Debit"}, {"date": "2026-06-08", "desc": "DD *DOORDASH POPEYESLO DOORDASH.COM", "type": "Debit", "amount": 26.34, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-08", "desc": "CIRCLE K 06732 HOOVER", "type": "Debit", "amount": 56.98, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-06-08", "desc": "DD *DOORDASH MCDONALDS DOORDASH.COM", "type": "Debit", "amount": 43.15, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-08", "desc": "DD *DOORDASH MCDONALDS DOORDASH.COM", "type": "Debit", "amount": 17.79, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-04", "desc": "SEASONS 52 0074525 BIRMINGHAM", "type": "Debit", "amount": 41.12, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-04", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 131.78, "cat": "Payroll", "account": "Debit"}, {"date": "2026-06-04", "desc": "PIGGLY WIGGLY #260 BIRMINGHAM", "type": "Debit", "amount": 25.45, "cat": "Groceries", "account": "Debit"}, {"date": "2026-06-03", "desc": "TRADER JOE S #73 TRADE BIRMINGHAM", "type": "Debit", "amount": 159.34, "cat": "Groceries", "account": "Debit"}, {"date": "2026-06-01", "desc": "BIRMINGHAMJEFFERSONCC BIRMINGHAM", "type": "Debit", "amount": 29.07, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-06-01", "desc": "SHELL OIL 57546015009 PELHAM", "type": "Debit", "amount": 23.09, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-06-01", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 19.79, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-06-01", "desc": "TST*SATURN - TVG BIRMINGHAM", "type": "Debit", "amount": 57.0, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-01", "desc": "PREMIUM PARKING PREMIUMPARKIN", "type": "Debit", "amount": 8.75, "cat": "Travel", "account": "Debit"}, {"date": "2026-05-28", "desc": "AVONDALE FOODMAR BIRMINGHAM", "type": "Debit", "amount": 62.27, "cat": "Groceries", "account": "Debit"}, {"date": "2026-05-28", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 119.4, "cat": "Payroll", "account": "Debit"}, {"date": "2026-05-28", "desc": "TST* BAYT AL QAHWAH HOMEWOOD", "type": "Debit", "amount": 16.25, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-28", "desc": "CHICK-FIL-A #01794 ALABASTER", "type": "Debit", "amount": 8.34, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-28", "desc": "TST* BAYT AL QAHWAH HOMEWOOD", "type": "Debit", "amount": 13.2, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-27", "desc": "WM SUPERCENTER #1711 1600 MONTCLAIR RD IRONDALE", "type": "Debit", "amount": 96.53, "cat": "Groceries", "account": "Debit"}, {"date": "2026-05-26", "desc": "WINGSTOP #3353 ALABASTER", "type": "Debit", "amount": 24.28, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-26", "desc": "MURPHY7687ATWALMART 560 COLONIAL PROME ALABASTER", "type": "Debit", "amount": 23.4, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-26", "desc": "DD *DOORDASH STARBUCKS DOORDASH.COM", "type": "Debit", "amount": 29.94, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-22", "desc": "CHICK-FIL-A #00684 PELHAM", "type": "Debit", "amount": 21.48, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-21", "desc": "STARBUCKS STORE 06964 BIRMINGHAM", "type": "Debit", "amount": 8.21, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-21", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 98.05, "cat": "Payroll", "account": "Debit"}, {"date": "2026-05-19", "desc": "SUNOCO 0325354900 BIRMINGHAM", "type": "Debit", "amount": 33.07, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-18", "desc": "TST* COLLINS BAR BIRMINGHAM", "type": "Debit", "amount": 31.97, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-18", "desc": "MCDONALD S F1946 2733 8TH AVE BIRMINGHAM", "type": "Debit", "amount": 29.74, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-18", "desc": "SHELL OIL 10002377009 BIRMINGHAM", "type": "Debit", "amount": 3.4, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-18", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 20.61, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-18", "desc": "CASH APP*REBEKAH LYNN OAKLAND", "type": "Debit", "amount": 100.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-05-18", "desc": "SHELL OIL 10002377009 BIRMINGHAM", "type": "Debit", "amount": 55.59, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-14", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 155.59, "cat": "Payroll", "account": "Debit"}, {"date": "2026-05-14", "desc": "UEP*KING BUFFET PELHAM", "type": "Debit", "amount": 15.74, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-14", "desc": "RIVERCHASE COOSA MART 2030 OLD MONTGOMER BIRMINGHAM", "type": "Debit", "amount": 2.71, "cat": "Groceries", "account": "Debit"}, {"date": "2026-05-14", "desc": "PUBLIX #841 HOOVER", "type": "Debit", "amount": 109.81, "cat": "Groceries", "account": "Debit"}, {"date": "2026-05-11", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 38.89, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-08", "desc": "JUICY SEAFOOD PELHAM PELHAM", "type": "Debit", "amount": 73.19, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-07", "desc": "DOLLAR TREE 300 COLONIAL PROME ALABASTER", "type": "Debit", "amount": 22.2, "cat": "Groceries", "account": "Debit"}, {"date": "2026-05-07", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 151.77, "cat": "Payroll", "account": "Debit"}, {"date": "2026-05-06", "desc": "STARBUCKS STORE 06964 BIRMINGHAM", "type": "Debit", "amount": 7.52, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-06", "desc": "TACOS DON TACHOS BIRMINGHAM", "type": "Debit", "amount": 36.22, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-05", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 9.43, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-05", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 289.84, "cat": "Venmo", "account": "Debit"}, {"date": "2026-05-04", "desc": "CHICK-FIL-A #01794 ALABASTER", "type": "Debit", "amount": 8.4, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-04", "desc": "ARTIFICE AT ELYSIAN GA BIRMINGHAM", "type": "Debit", "amount": 191.84, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-04", "desc": "POPEYES 13830 HOOVER", "type": "Debit", "amount": 19.14, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-04", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 6.6, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-05-01", "desc": "DD *DOORDASH STARBUCKS DOORDASH.COM", "type": "Debit", "amount": 45.33, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-05-01", "desc": "SQ *LEAFLY BOBA BAR SQUARE PURCHASE BIRMINGHAM", "type": "Debit", "amount": 8.31, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-30", "desc": "LONGHORN STK EC 012530 205-620-0511", "type": "Debit", "amount": 90.71, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-30", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 130.77, "cat": "Payroll", "account": "Debit"}, {"date": "2026-04-28", "desc": "SURIN WEST 681-2045099", "type": "Debit", "amount": 135.58, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-28", "desc": "PUBLIX SUPER MARKETS 9200 HWY 119 ALABASTER", "type": "Debit", "amount": 55.58, "cat": "Groceries", "account": "Debit"}, {"date": "2026-04-27", "desc": "DD *DOORDASH STARBUCKS DOORDASH.COM", "type": "Debit", "amount": 35.86, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-27", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 31.31, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-04-27", "desc": "OLD NAVY US 4217 HOOVER", "type": "Debit", "amount": 101.79, "cat": "Shopping / Misc", "account": "Debit"}, {"date": "2026-04-27", "desc": "SQ *LEAFLY BOBA BAR SQUARE PURCHASE BIRMINGHAM", "type": "Debit", "amount": 9.31, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-27", "desc": "APPLE CASH INST XFER APPLE CASH INST XF CUPERTINO", "type": "Credit", "amount": 540.65, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-23", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 106.99, "cat": "Payroll", "account": "Debit"}, {"date": "2026-04-23", "desc": "FSP*ALL GOOD BEVERAGE BIRMINGHAM", "type": "Debit", "amount": 10.56, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-22", "desc": "THE ROUGAROUX 817 39TH STREET SO BIRMINGHAM", "type": "Debit", "amount": 5.5, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-22", "desc": "ALABAMA ABC #58 HOOVER", "type": "Debit", "amount": 10.94, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-22", "desc": "TAX REF IRS TREAS 310 PPD 9111736959", "type": "Credit", "amount": 909.0, "cat": "Tax Refund", "account": "Debit"}, {"date": "2026-04-22", "desc": "THE ROUGAROUX 817 39TH STREET SO BIRMINGHAM", "type": "Debit", "amount": 63.85, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-21", "desc": "PUBLIX #1207 HOOVER", "type": "Debit", "amount": 50.16, "cat": "Groceries", "account": "Debit"}, {"date": "2026-04-21", "desc": "COCA COLA CF BIRMINGHA BIRMINGHAM", "type": "Debit", "amount": 2.1, "cat": "Vending / Misc", "account": "Debit"}, {"date": "2026-04-20", "desc": "TM *HIPPIE SABOTAGE GI 800-653-8000", "type": "Debit", "amount": 50.27, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-20", "desc": "APPLE CASH INST XFER APPLE CASH INST XF CUPERTINO", "type": "Credit", "amount": 589.8, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-20", "desc": "MCDONALD S F1946 2733 8TH AVE BIRMINGHAM", "type": "Debit", "amount": 24.47, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-20", "desc": "CHICK-FIL-A #01659 HOOVER", "type": "Debit", "amount": 18.02, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-17", "desc": "APPLE CASH INST XFER APPLE CASH INST XF CUPERTINO", "type": "Credit", "amount": 589.8, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-17", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 6.26, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-04-16", "desc": "VOCELLI PIZZA BIRMINGHAM", "type": "Debit", "amount": 46.19, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-16", "desc": "DD *DOORDASH DOMINOS DOORDASH.COM", "type": "Debit", "amount": 27.65, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-16", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 123.77, "cat": "Payroll", "account": "Debit"}, {"date": "2026-04-15", "desc": "TM *HIPPIE SABOTAGE GI 800-653-8000", "type": "Debit", "amount": 44.57, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-14", "desc": "HIGHLAND PACKAGE STORE BIRMINGHAM", "type": "Debit", "amount": 2.63, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-14", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 7.41, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-04-13", "desc": "FSP*ALL GOOD BEVERAGE BIRMINGHAM", "type": "Debit", "amount": 10.56, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-13", "desc": "CHICK-FIL-A #01794 ALABASTER", "type": "Debit", "amount": 27.16, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-13", "desc": "GUTHRIE S OF VESTAVIA VESTAVIA HILL", "type": "Debit", "amount": 7.14, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-13", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 6.91, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-04-10", "desc": "CASH APP*CARLOS FELICI OAKLAND", "type": "Debit", "amount": 2000.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-09", "desc": "FSP*ALL GOOD BEVERAGE BIRMINGHAM", "type": "Debit", "amount": 14.2, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-09", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 80.42, "cat": "Payroll", "account": "Debit"}, {"date": "2026-04-08", "desc": "KING BUFFET IRONDALE", "type": "Debit", "amount": 45.67, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-08", "desc": "SQ *PUNCH LOVE COFFEE, BIRMINGHAM", "type": "Debit", "amount": 38.5, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-07", "desc": "CASH APP*T DIRECT OAKLAND", "type": "Debit", "amount": 2000.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-07", "desc": "THE ROUGAROUX BIRMINGHAM", "type": "Debit", "amount": 89.65, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-07", "desc": "VENMO *JOHN FLORIO NEW YORK", "type": "Debit", "amount": 3000.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-07", "desc": "EB *FLOMATIK FEAT SOLA 8014137200", "type": "Debit", "amount": 20.0, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-04-06", "desc": "APPLE CASH INST XFER APPLE CASH INST XF CUPERTINO", "type": "Credit", "amount": 78.64, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-06", "desc": "CHEVRON 0384590 HOOVER", "type": "Debit", "amount": 12.24, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-04-06", "desc": "CASH APP*BEN SHUNNARA*CAS CASH APP*BEN SHUNN OAKLAND", "type": "Credit", "amount": 1321.66, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-06", "desc": "REGULAR DEPOSIT", "type": "Credit", "amount": 3000.0, "cat": "Other Income", "account": "Debit"}, {"date": "2026-04-06", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 2695.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-04-03", "desc": "SQ *LEAFLY BOBA BAR BIRMINGHAM", "type": "Debit", "amount": 9.31, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-03", "desc": "TRADER JOE S #73 205 S BIRMINGHAM", "type": "Debit", "amount": 104.82, "cat": "Groceries", "account": "Debit"}, {"date": "2026-04-02", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 118.6, "cat": "Payroll", "account": "Debit"}, {"date": "2026-04-02", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 34.72, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-04-02", "desc": "TACO BELL #029134 ALABASTER", "type": "Debit", "amount": 11.3, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-04-01", "desc": "CHICK-FIL-A #01794 ALABASTER", "type": "Debit", "amount": 15.4, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-31", "desc": "THE GOOSE BIRMINGHAM", "type": "Debit", "amount": 50.26, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-30", "desc": "APPLE CASH INST XFER APPLE CASH INST XF CUPERTINO", "type": "Credit", "amount": 137.62, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-30", "desc": "PUBLIX SUPER MARKETS 9200 HWY 119 ALABASTER", "type": "Debit", "amount": 26.11, "cat": "Groceries", "account": "Debit"}, {"date": "2026-03-30", "desc": "TST*ROLL CAJUN BIRMINGHAM", "type": "Debit", "amount": 124.57, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-30", "desc": "TST*ROLL CAJUN BIRMINGHAM", "type": "Debit", "amount": 33.0, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-27", "desc": "MURPHY7687ATWALMART 560 COLONIAL PROME ALABASTER", "type": "Debit", "amount": 16.76, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-26", "desc": "SQ *LOS VALEDORES MEXICAN SQUARE PURCHASE IRONDALE", "type": "Debit", "amount": 12.65, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-26", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 98.09, "cat": "Payroll", "account": "Debit"}, {"date": "2026-03-26", "desc": "CTLP*BUFFALO ROCK COMP BIRMINGHAM", "type": "Debit", "amount": 1.1, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-03-26", "desc": "SQ *LEAFLY BOBA BAR SQUARE PURCHASE BIRMINGHAM", "type": "Debit", "amount": 7.81, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-25", "desc": "FSP*CAHABA BREWING COM BIRMINGHAM", "type": "Debit", "amount": 29.1, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-03-24", "desc": "BLACK MARKET BAR & GRI 205-9338035", "type": "Debit", "amount": 63.46, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-23", "desc": "DD *DOORDASH ARBYS DOORDASH.COM", "type": "Debit", "amount": 23.67, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-23", "desc": "TACO BELL #029134 ALABASTER", "type": "Debit", "amount": 21.52, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-23", "desc": "CIRCLE K # 07035 DAPHNE", "type": "Debit", "amount": 51.23, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-19", "desc": "TST*HELLO BAKERY BIRMINGHAM", "type": "Debit", "amount": 8.57, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-16", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 39.3, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-16", "desc": "THE HOUSE OF FOUND OBJ 504-7152240", "type": "Debit", "amount": 127.0, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-16", "desc": "APPLE CASH INST XFER APPLE CASH INST XF CUPERTINO", "type": "Credit", "amount": 294.9, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-16", "desc": "DOLLAR TREE 7001 CRESTWOOD BLV IRONDALE", "type": "Debit", "amount": 5.48, "cat": "Groceries", "account": "Debit"}, {"date": "2026-03-16", "desc": "CASH APP*BEN SHUNNARA*CAS CASH APP*BEN SHUNN OAKLAND", "type": "Credit", "amount": 132.37, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-16", "desc": "LONGHORN STEAK 0125626 HOOVER", "type": "Debit", "amount": 121.48, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-16", "desc": "MCDONALD S F1946 2733 8TH AVE BIRMINGHAM", "type": "Debit", "amount": 27.32, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-16", "desc": "TST* AUTOMATIC SEAFOOD BIRMINGHAM", "type": "Debit", "amount": 274.5, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-16", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL NEW YORK CITY", "type": "Credit", "amount": 294.75, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-13", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 324.23, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-11", "desc": "TACO BELL #029153 HOOVER", "type": "Debit", "amount": 25.33, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-11", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 12.83, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-09", "desc": "SQ *THE EXCEPTIONAL FO BIRMINGHAM", "type": "Debit", "amount": 12.0, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-09", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 9.98, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-09", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 13.71, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-09", "desc": "BLACK MARKET BAR & GRI 205-9338035", "type": "Debit", "amount": 60.25, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-09", "desc": "CHICK-FIL-A #01659 HOOVER", "type": "Debit", "amount": 15.09, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-05", "desc": "TST*HELLO BAKERY BIRMINGHAM", "type": "Debit", "amount": 15.11, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-05", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 142.96, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-04", "desc": "BLACK MARKET BAR & GRI 205-9338035", "type": "Debit", "amount": 68.83, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-04", "desc": "BLACK MARKET BAR & GRI 205-9338035", "type": "Debit", "amount": 21.0, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-03", "desc": "TST* UP DOWN - BIRMING BIRMINGHAM", "type": "Debit", "amount": 3.89, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-03", "desc": "TST* UP DOWN - BIRMING BIRMINGHAM", "type": "Debit", "amount": 27.6, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-03", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 30.67, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-02", "desc": "BP#1236200EDGEWOOD BP 100 EVERGREEN AVE HOMEWOOD", "type": "Debit", "amount": 21.1, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-03-02", "desc": "DD *DOORDASH TACOBELL DOORDASH.COM", "type": "Debit", "amount": 27.07, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-03-02", "desc": "SEETICKET* DEEP SIGN SEETICKETS.US", "type": "Debit", "amount": 31.7, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-03-02", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 98.25, "cat": "Venmo", "account": "Debit"}, {"date": "2026-03-02", "desc": "CASH APP*BEN SHUNNARA*CAS CASH APP*BEN SHUNN OAKLAND", "type": "Credit", "amount": 102.13, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-26", "desc": "TRADER JOE S #73 205 S BIRMINGHAM", "type": "Debit", "amount": 153.59, "cat": "Groceries", "account": "Debit"}, {"date": "2026-02-26", "desc": "TST* CHOPT CREATIVE SA VESTAVIA", "type": "Debit", "amount": 10.47, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-25", "desc": "CTLP*TAILWIND EGE LLC WILMINGTON", "type": "Debit", "amount": 4.39, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-25", "desc": "CHARLIES T SHIRTS - RL VAIL", "type": "Debit", "amount": 37.09, "cat": "Travel", "account": "Debit"}, {"date": "2026-02-25", "desc": "MOSTLY BEAR VAIL", "type": "Debit", "amount": 79.0, "cat": "Travel", "account": "Debit"}, {"date": "2026-02-25", "desc": "VAIL FINE WINES VAIL", "type": "Debit", "amount": 3.5, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-24", "desc": "SP BJORNS COLORADO H 130-38875111", "type": "Debit", "amount": 12.18, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-23", "desc": "RR VAIL 40928 HWY6 AVON", "type": "Debit", "amount": 198.0, "cat": "Cash Withdrawal", "account": "Debit"}, {"date": "2026-02-23", "desc": "TOUCHTUNES MUSIC COMPA 847-419-3300", "type": "Debit", "amount": 15.0, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-23", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL NEW YORK CITY", "type": "Credit", "amount": 196.5, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-20", "desc": "40928 HWY6 40928 HWY6 AVON", "type": "Debit", "amount": 33.0, "cat": "Cash Withdrawal", "account": "Debit"}, {"date": "2026-02-20", "desc": "CASH APP*BEN SHUNNARA*CAS CASH APP*BEN SHUNN OAKLAND", "type": "Credit", "amount": 362.68, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-20", "desc": "EAGLE VAIL 40928 HWY 6 EAGLE VAIL", "type": "Debit", "amount": 373.0, "cat": "Cash Withdrawal", "account": "Debit"}, {"date": "2026-02-19", "desc": "C & B MANAGEMENT CO. I EDWARDS", "type": "Debit", "amount": 100.0, "cat": "Travel", "account": "Debit"}, {"date": "2026-02-18", "desc": "EAGLE VAIL 40928 HWY 6 EAGLE VAIL", "type": "Debit", "amount": 283.0, "cat": "Cash Withdrawal", "account": "Debit"}, {"date": "2026-02-17", "desc": "FSP*ALL GOOD BEVERAGE BIRMINGHAM", "type": "Debit", "amount": 41.4, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-17", "desc": "SQ *2312 & COMPANY SQUARE PURCHASE MOUNTAIN BROO", "type": "Debit", "amount": 5.2, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-17", "desc": "FSP*CAHABA BREWING COM BIRMINGHAM", "type": "Debit", "amount": 37.95, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-17", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 196.5, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-17", "desc": "ATLMARKET ST2681 ATLANTA", "type": "Debit", "amount": 9.34, "cat": "Travel", "account": "Debit"}, {"date": "2026-02-17", "desc": "RR VAIL 40928 HWY6 AVON", "type": "Debit", "amount": 393.0, "cat": "Cash Withdrawal", "account": "Debit"}, {"date": "2026-02-17", "desc": "INMOTION ATL 841 ATLANTA", "type": "Debit", "amount": 33.78, "cat": "Travel", "account": "Debit"}, {"date": "2026-02-17", "desc": "CHICK-FIL-A #01659 HOOVER", "type": "Debit", "amount": 24.39, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-13", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 12.06, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-02-12", "desc": "REGULAR DEPOSIT", "type": "Credit", "amount": 1100.0, "cat": "Other Income", "account": "Debit"}, {"date": "2026-02-10", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 30.44, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-02-10", "desc": "DOLLAR GENERAL #14177 DG 141774600 5TH A BIRMINGHAM", "type": "Debit", "amount": 15.6, "cat": "Groceries", "account": "Debit"}, {"date": "2026-02-09", "desc": "CHEVRON 0208766 BIRMINGHAM", "type": "Debit", "amount": 14.29, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-02-09", "desc": "DD *DOORDASH CAPELLAPI DOORDASH.COM", "type": "Debit", "amount": 61.79, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-09", "desc": "TST*ONO POKE - HOMEWOO HOMEWOOD", "type": "Debit", "amount": 15.62, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-06", "desc": "WORLD MARKET #222 4381 CREEKSIDE AVE HOOVER", "type": "Debit", "amount": 10.82, "cat": "Shopping / Misc", "account": "Debit"}, {"date": "2026-02-05", "desc": "CHICK-FIL-A #00822 HOOVER", "type": "Debit", "amount": 14.75, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-05", "desc": "VENMO *AZIZ SHUNNARA NEW YORK", "type": "Debit", "amount": 700.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-05", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL NEW YORK CITY", "type": "Credit", "amount": 54.04, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-05", "desc": "CASH APP*BEN SHUNNARA*CAS CASH APP*BEN SHUNN OAKLAND", "type": "Credit", "amount": 294.75, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-05", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 181.77, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-05", "desc": "CASH APP*CARLOS FELICI OAKLAND", "type": "Debit", "amount": 350.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-02-03", "desc": "TACO BELL #029153 HOOVER", "type": "Debit", "amount": 22.21, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-03", "desc": "REGULAR DEPOSIT", "type": "Credit", "amount": 700.0, "cat": "Other Income", "account": "Debit"}, {"date": "2026-02-02", "desc": "DUMBWAITER RESTAURANT 251-4589573", "type": "Debit", "amount": 9.03, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-02", "desc": "CANDLEWOOD SUITES MRKT MOBILE", "type": "Debit", "amount": 5.23, "cat": "Travel", "account": "Debit"}, {"date": "2026-02-02", "desc": "DD *DOORDASH WINGSTOP DOORDASH.COM", "type": "Debit", "amount": 63.48, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-02-02", "desc": "CTLP*PHOTO BOOTH CO THUNDERBOLT", "type": "Debit", "amount": 7.0, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-02-02", "desc": "UBR* PENDING.UBER.COM 1515 3RD STREET SAN FRANCISCO", "type": "Debit", "amount": 12.98, "cat": "Rideshare", "account": "Debit"}, {"date": "2026-01-30", "desc": "CHICK-FIL-A #01659 HOOVER", "type": "Debit", "amount": 14.83, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-29", "desc": "CHICK-FIL-A #00822 HOOVER", "type": "Debit", "amount": 6.12, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-29", "desc": "CHEVRON 0384590 HOOVER", "type": "Debit", "amount": 2.18, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-29", "desc": "VENMO *AZIZ SHUNNARA NEW YORK", "type": "Debit", "amount": 400.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-28", "desc": "KEYMELOCKSMITHS.COM HTTPS://KEY.ME/SUP HEBRON", "type": "Debit", "amount": 16.46, "cat": "Shopping / Misc", "account": "Debit"}, {"date": "2026-01-28", "desc": "WORLD MARKET #222 4381 CREEKSIDE AVE HOOVER", "type": "Debit", "amount": 4.36, "cat": "Shopping / Misc", "account": "Debit"}, {"date": "2026-01-28", "desc": "WM SUPERCENTER #1229 2780 JOHN HAWKINS HOOVER", "type": "Debit", "amount": 5.77, "cat": "Groceries", "account": "Debit"}, {"date": "2026-01-28", "desc": "REGULAR DEPOSIT", "type": "Credit", "amount": 400.0, "cat": "Other Income", "account": "Debit"}, {"date": "2026-01-27", "desc": "USPS PO 0107930090 1809 RIVERCHASE DR HOOVER", "type": "Debit", "amount": 11.95, "cat": "Shopping / Misc", "account": "Debit"}, {"date": "2026-01-27", "desc": "CHEVRON 0384590 HOOVER", "type": "Debit", "amount": 7.82, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-26", "desc": "CHEVRON 0044666 BIRMINGHAM", "type": "Debit", "amount": 8.53, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-26", "desc": "CHICK-FIL-A #01659 HOOVER", "type": "Debit", "amount": 10.68, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-26", "desc": "DOLLAR GENERAL #14177 DG 141774600 5TH A BIRMINGHAM", "type": "Debit", "amount": 30.09, "cat": "Groceries", "account": "Debit"}, {"date": "2026-01-26", "desc": "SPO*BIRMINGHAMWINGS&WA BIRMINGHAM", "type": "Debit", "amount": 51.04, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-26", "desc": "MAKARIOS BIRMINGHAM", "type": "Debit", "amount": 5.5, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-23", "desc": "JASON S DELI-BHR-076 HOOVER", "type": "Debit", "amount": 32.37, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-23", "desc": "CHEVRON 0384590 HOOVER", "type": "Debit", "amount": 6.95, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-22", "desc": "NET=PAY AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 117.04, "cat": "Payroll", "account": "Debit"}, {"date": "2026-01-21", "desc": "DD *DOORDASH PETSUPPLI DOORDASH.COM", "type": "Debit", "amount": 71.91, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-21", "desc": "CHICK-FIL-A #03948 VESTAVIA", "type": "Debit", "amount": 11.58, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-20", "desc": "ARBYS 7850 ALABASTER", "type": "Debit", "amount": 12.96, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-20", "desc": "RAGTIME CAFE HOOVER", "type": "Debit", "amount": 22.52, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-20", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 250.54, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-20", "desc": "ELYTON HTL AUTOGRAPH BIRMINGHAM", "type": "Debit", "amount": 95.36, "cat": "Travel", "account": "Debit"}, {"date": "2026-01-16", "desc": "CASH APP*SALIBA SHUNNARA* CASH APP*SALIBA SH OAKLAND", "type": "Credit", "amount": 56.98, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-16", "desc": "CIRCLE K # 23810 BIRMINGHAM", "type": "Debit", "amount": 21.12, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-16", "desc": "CHEVRON 0371023 BIRMINGHAM", "type": "Debit", "amount": 3.26, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-15", "desc": "THE ROUGAROUX BIRMINGHAM", "type": "Debit", "amount": 26.3, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-15", "desc": "WM SUPERCENTER #1229 2780 JOHN HAWKINS HOOVER", "type": "Debit", "amount": 10.64, "cat": "Groceries", "account": "Debit"}, {"date": "2026-01-15", "desc": "THE ROUGAROUX BIRMINGHAM", "type": "Debit", "amount": 10.56, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-15", "desc": "NET=PAY AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 106.16, "cat": "Payroll", "account": "Debit"}, {"date": "2026-01-14", "desc": "DD *DOORDASH DOMINOS DOORDASH.COM", "type": "Debit", "amount": 17.22, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-14", "desc": "ANTHONY S CAR WASH #1 HOOVER", "type": "Debit", "amount": 45.0, "cat": "Auto Maintenance", "account": "Debit"}, {"date": "2026-01-14", "desc": "VENMO *PAM WEAVER NEW YORK", "type": "Debit", "amount": 10.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-13", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL NEW YORK CITY", "type": "Credit", "amount": 68.78, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-12", "desc": "TST*PARAMOUNT BIRMINGH BIRMINGHAM", "type": "Debit", "amount": 19.43, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-12", "desc": "DD *DOORDASH TACOBELL DOORDASH.COM", "type": "Debit", "amount": 29.08, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-12", "desc": "TST*THE CURRENT AT CAH 205-532-6324", "type": "Debit", "amount": 33.56, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-12", "desc": "CASH APP*SALIBA SHUNNARA* CASH APP*SALIBA SH OAKLAND", "type": "Credit", "amount": 97.84, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-12", "desc": "VENMO *JOHN FLORIO NEW YORK", "type": "Debit", "amount": 1000.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-12", "desc": "FSP*CAHABA BREWING COM BIRMINGHAM", "type": "Debit", "amount": 61.4, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-01-12", "desc": "SHELL OIL 10002377009 BIRMINGHAM", "type": "Debit", "amount": 22.07, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-12", "desc": "CHICK-FIL-A #00684 PELHAM", "type": "Debit", "amount": 10.38, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-09", "desc": "TST*THE PURPLE ONION - HOOVER", "type": "Debit", "amount": 27.47, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-09", "desc": "SHELL OIL 10002377009 BIRMINGHAM", "type": "Debit", "amount": 7.43, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-09", "desc": "VENMO *CHRIS BEKE VISA DIRECT", "type": "Debit", "amount": 1250.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-09", "desc": "REGULAR DEPOSIT", "type": "Credit", "amount": 1000.0, "cat": "Other Income", "account": "Debit"}, {"date": "2026-01-08", "desc": "CIRCLE K # 23810 BIRMINGHAM", "type": "Debit", "amount": 27.68, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-08", "desc": "SQ *BIG SPOON CREAMERY SQUARE PURCHASE BIRMINGHAM", "type": "Debit", "amount": 8.15, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-08", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 393.0, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-08", "desc": "CASH APP*SALIBA SHUNNARA* CASH APP*SALIBA SH OAKLAND", "type": "Credit", "amount": 927.72, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-08", "desc": "CASH APP*SALIBA SHUNNARA* CASH APP*SALIBA SH OAKLAND", "type": "Credit", "amount": 117.9, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-08", "desc": "NET=PAY AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 22.21, "cat": "Payroll", "account": "Debit"}, {"date": "2026-01-07", "desc": "CHICK-FIL-A #01794 ALABASTER", "type": "Debit", "amount": 23.29, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-05", "desc": "CHEVRON 0384590 HOOVER", "type": "Debit", "amount": 19.45, "cat": "Gas / Fuel", "account": "Debit"}, {"date": "2026-01-05", "desc": "TOUCHTUNES MUSIC COMPA 847-419-3300", "type": "Debit", "amount": 7.0, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-01-05", "desc": "ANTHONY S CAR WASH #1 HOOVER", "type": "Debit", "amount": 45.0, "cat": "Auto Maintenance", "account": "Debit"}, {"date": "2026-01-05", "desc": "DD *DOORDASH EXOTICWIN DOORDASH.COM", "type": "Debit", "amount": 48.88, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-05", "desc": "TOUCHTUNES MUSIC COMPA 847-419-3300", "type": "Debit", "amount": 15.0, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-01-05", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL NEW YORK CITY", "type": "Credit", "amount": 39.3, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-05", "desc": "VENMO*SHUNNARA SALIBA VENMO*SHUNNARA SAL VISA DIRECT", "type": "Credit", "amount": 98.25, "cat": "Venmo", "account": "Debit"}, {"date": "2026-01-05", "desc": "DD *DOORDASH DOMINOS DOORDASH.COM", "type": "Debit", "amount": 18.64, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-05", "desc": "TOUCHTUNES MUSIC COMPA 847-419-3300", "type": "Debit", "amount": 15.0, "cat": "Entertainment", "account": "Debit"}, {"date": "2026-01-05", "desc": "SQ *CLUB SOUTH BIRMINGHAM", "type": "Debit", "amount": 18.0, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-02", "desc": "SQ *FACILITY CONCESSIO ATLANTA", "type": "Debit", "amount": 39.65, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-02", "desc": "SQ *FACILITY CONCESSIO ATLANTA", "type": "Debit", "amount": 28.86, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-01-02", "desc": "HONK PARKING 866-675-7337", "type": "Debit", "amount": 6.95, "cat": "Travel", "account": "Debit"}, {"date": "2026-01-02", "desc": "JDS SUMMERHILL ATLANTA", "type": "Debit", "amount": 12.06, "cat": "Shopping / Misc", "account": "Debit"}, {"date": "2026-01-02", "desc": "DD *DOORDASH JERSEYMIK DOORDASH.COM", "type": "Debit", "amount": 20.11, "cat": "Dining & Delivery", "account": "Debit"}, {"date": "2026-06-11", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 400.78, "cat": "Payroll", "account": "Savings"}, {"date": "2026-06-04", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 527.11, "cat": "Payroll", "account": "Savings"}, {"date": "2026-05-28", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 477.58, "cat": "Payroll", "account": "Savings"}, {"date": "2026-05-21", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 392.22, "cat": "Payroll", "account": "Savings"}, {"date": "2026-05-14", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 622.38, "cat": "Payroll", "account": "Savings"}, {"date": "2026-05-07", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 607.09, "cat": "Payroll", "account": "Savings"}, {"date": "2026-04-30", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 523.1, "cat": "Payroll", "account": "Savings"}, {"date": "2026-04-23", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 427.96, "cat": "Payroll", "account": "Savings"}, {"date": "2026-04-16", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 495.06, "cat": "Payroll", "account": "Savings"}, {"date": "2026-04-09", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 321.67, "cat": "Payroll", "account": "Savings"}, {"date": "2026-04-02", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 474.41, "cat": "Payroll", "account": "Savings"}, {"date": "2026-03-31", "desc": "INTEREST DEPOSIT", "type": "Credit", "amount": 126.77, "cat": "Interest", "account": "Savings"}, {"date": "2026-03-26", "desc": "PAYROLL AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 392.34, "cat": "Payroll", "account": "Savings"}, {"date": "2026-03-19", "desc": "TRANSFER FROM X7616 TO X0201 SALIBA CC PAYMENT", "type": "Debit", "amount": 1605.72, "cat": "Payback to Parents", "account": "Savings"}, {"date": "2026-02-12", "desc": "DEPOSIT", "type": "Credit", "amount": 400.44, "cat": "Other Income", "account": "Savings"}, {"date": "2026-01-22", "desc": "NET=PAY AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 468.18, "cat": "Payroll", "account": "Savings"}, {"date": "2026-01-15", "desc": "NET=PAY AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 424.65, "cat": "Payroll", "account": "Savings"}, {"date": "2026-01-09", "desc": "SAVINGS WITHDRAWAL", "type": "Debit", "amount": 3000.0, "cat": "Savings Withdrawal", "account": "Savings"}, {"date": "2026-01-08", "desc": "NET=PAY AJLO FOODS, INC PPD 12635442", "type": "Credit", "amount": 88.85, "cat": "Payroll", "account": "Savings"}];
+
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const CAT_COLORS = {
+  'Dining & Delivery':'#C8A96E','Groceries':'#7EB8A0','Gas / Fuel':'#4CAF7D',
+  'Venmo':'#E05A5A','Entertainment':'#9B7EBD','Travel':'#5B9BD5',
+  'Cash Withdrawal':'#888880','Car Payment':'#D4845A','Auto Maintenance':'#A3C45A',
+  'Pharmacy / Personal Care':'#5BB8C4','Shopping / Misc':'#B87EB8',
+  'Vending / Misc':'#666660','Rideshare':'#D49A5A','Savings Withdrawal':'#E06060',
+  'Internal Transfer':'#444440',
+  'Payroll':'#4CAF7D','Other Income':'#6DC87A','Tax Refund':'#3D9E60','Interest':'#7BCCA0'
+};
+
+let acct = 'All';
+let month = null; // 'YYYY-MM' or null for all
+let txFilter = 'all';
+let txSearch = '';
+
+function fmtMoney(n){ return '$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+const EXCL_CATS = ['Internal Transfer – Own Accounts'];
+
+function isSpending(t) { return t.type==='Debit'  && !EXCL_CATS.includes(t.cat); }
+function isPayroll(t)  { return t.type==='Credit' && t.cat==='Payroll'; }
+function isVenmoIn(t)  { return t.type==='Credit' && t.cat==='Venmo'; }
+function isOtherIn(t)  { return t.type==='Credit' && !['Payroll','Venmo'].includes(t.cat) && !EXCL_CATS.includes(t.cat); }
+function isTransfer(t) { return EXCL_CATS.includes(t.cat); }
+
+// keep aliases for tx filter buttons
+function isExpense(t){ return isSpending(t); }
+function isIncome(t) { return isPayroll(t); }
+function isVenmoOut(t){ return t.type==='Debit' && t.cat==='Venmo'; }
+
+function filtered(){ return acct==='All' ? RAW : RAW.filter(t=>t.account===acct); }
+
+function getMonths(){
+  const set = new Set(filtered().map(t=>t.date.slice(0,7)));
+  return [...set].sort();
+}
+
+function getMonthTxns(m){ return filtered().filter(t=>t.date.slice(0,7)===m); }
+
+function calcStats(txns){
+  const spending  = txns.filter(isSpending);
+  const payroll   = txns.filter(isPayroll);
+  const venmoIn   = txns.filter(isVenmoIn);
+  const otherIn   = txns.filter(isOtherIn);
+  const spendTotal   = spending.reduce((s,t)=>s+t.amount,0);
+  const payrollTotal = payroll.reduce((s,t)=>s+t.amount,0);
+  const venmoInTotal = venmoIn.reduce((s,t)=>s+t.amount,0);
+  const otherInTotal = otherIn.reduce((s,t)=>s+t.amount,0);
+  const totalIn      = payrollTotal + venmoInTotal + otherInTotal;
+  return {
+    spendTotal, payrollTotal, venmoInTotal, otherInTotal, totalIn,
+    net: totalIn - spendTotal,
+    spendCount: spending.length,
+    // legacy aliases used in rendering
+    expTotal: spendTotal, incTotal: payrollTotal,
+    venmoOutTotal: txns.filter(isVenmoOut).reduce((s,t)=>s+t.amount,0),
+    expenses: spending, income: payroll, all: txns
+  };
+}
+
+function catBreakdown(txns){
+  const m={};
+  txns.filter(isSpending).forEach(t=>{m[t.cat]=(m[t.cat]||0)+t.amount;});
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+
+// ── ACCOUNT TABS ──────────────────────────────────────────────────────────────
+function renderAcctTabs(){
+  document.getElementById('acct-tabs').innerHTML=['All','Debit','Savings'].map(a=>
+    `<button class="acct-tab${a===acct?' active':''}" onclick="setAcct('${a}')">${a==='All'?'Overview':a+' Account'}</button>`
+  ).join('');
+}
+function setAcct(a){
+  const prevMonth = month;
+  acct=a; txFilter='all'; txSearch='';
+  // Keep the same month if it exists in the new account, otherwise go to all
+  const avail = getMonths();
+  month = (prevMonth && avail.includes(prevMonth)) ? prevMonth : null;
+  go();
+}
+
+// ── MONTH RAIL ────────────────────────────────────────────────────────────────
+function renderMonthRail(){
+  const months = getMonths();
+  const allTxns = filtered();
+  const statsByMonth = {};
+  months.forEach(m=>{ statsByMonth[m]=calcStats(getMonthTxns(m)); });
+  const maxExp = Math.max(...months.map(m=>statsByMonth[m].expTotal),1);
+  const maxInc = Math.max(...months.map(m=>statsByMonth[m].incTotal),1);
+
+  const allBtn = `<button class="month-btn${month===null?' active':''}" onclick="setMonth(null)">
+    <div class="month-label">All</div>
+    <div class="month-bar" style="justify-content:center;align-items:center">
+      <span style="font-size:.6rem;color:var(--muted2)">${months.length}mo</span>
+    </div>
+    <div class="month-amt">${fmtMoney(allTxns.filter(isExpense).reduce((s,t)=>s+t.amount,0))}</div>  </button>`;
+
+  const monthBtns = months.map(m=>{
+    const s=statsByMonth[m];
+    const expH=Math.round((s.expTotal/maxExp)*22);
+    const incH=Math.round((s.incTotal/maxInc)*22);
+    const [y,mo]=m.split('-');
+    return `<button class="month-btn${month===m?' active':''}" onclick="setMonth('${m}')">
+      <div class="month-label">${MONTHS_SHORT[parseInt(mo)-1]} ${y.slice(2)}</div>
+      <div class="month-bar">
+        <div class="month-bar-col income" style="height:${incH}px"></div>
+        <div class="month-bar-col expense" style="height:${expH}px"></div>
+      </div>
+      <div class="month-amt">${fmtMoney(s.expTotal)}</div>
+    </button>`;
+  }).join('');
+
+  document.getElementById('month-rail').innerHTML = allBtn + monthBtns;
+}
+function setMonth(m){ month=m; txFilter='all'; txSearch=''; renderContent(); }
+
+// ── CAT BARS ─────────────────────────────────────────────────────────────────
+function renderCatBars(cats, total){
+  if(!cats.length) return '<div class="tx-empty">No spending data</div>';
+  const top=cats[0][1]||1;
+  return `<div class="cat-bar-list">`+cats.map(([cat,amt])=>{
+    const color=CAT_COLORS[cat]||'#666';
+    const pct=Math.round(amt/total*100);
+    const barW=Math.round(amt/top*100);
+    return `<div class="cat-bar-item">
+      <div class="cat-bar-top">
+        <div class="cat-bar-name"><span class="cat-dot" style="background:${color}"></span>${cat}</div>
+        <div class="cat-bar-right">${fmtMoney(amt)} <span style="color:var(--muted2);font-weight:400;font-size:.62rem">${pct}%</span></div>
+      </div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ── FLOW TABLE ────────────────────────────────────────────────────────────────
+function renderFlowTable(stats){
+  const net = stats.net;
+  return `
+    <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);margin-bottom:6px">Money In</div>
+    <div class="flow-row"><span class="flow-label">Payroll <span style="color:var(--muted2);font-size:.6rem">fixed income</span></span><span class="flow-amount income">+${fmtMoney(stats.payrollTotal)}</span></div>
+    ${stats.venmoInTotal>0?`<div class="flow-row"><span class="flow-label">Venmo / Cash App received <span style="color:var(--muted2);font-size:.6rem">variable</span></span><span class="flow-amount income">+${fmtMoney(stats.venmoInTotal)}</span></div>`:''}
+    ${stats.otherInTotal>0?`<div class="flow-row"><span class="flow-label">Other credits <span style="color:var(--muted2);font-size:.6rem">one-time</span></span><span class="flow-amount income">+${fmtMoney(stats.otherInTotal)}</span></div>`:''}
+    <div class="flow-row total"><span class="flow-label total">Total In</span><span class="flow-amount income">+${fmtMoney(stats.totalIn)}</span></div>
+    <div style="margin-top:14px;font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);margin-bottom:6px">Spending</div>
+    <div class="flow-row total"><span class="flow-label total">Total Spending</span><span class="flow-amount expense">−${fmtMoney(stats.spendTotal)}</span></div>
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <div class="flow-row total">
+        <span class="flow-label total">Net</span>
+        <span class="flow-amount ${net>=0?'net-pos':'net-neg'}" style="font-family:'DM Serif Display',serif;font-size:1.2rem">${net>=0?'+':'−'}${fmtMoney(Math.abs(net))}</span>
+      </div>
+    </div>`;
+}
+
+// ── TX LIST ───────────────────────────────────────────────────────────────────
+function renderTxList(txns, showAcct){
+  let list = txns.slice();
+  if(txFilter==='expense') list=list.filter(isExpense);
+  else if(txFilter==='income') list=list.filter(isIncome);
+  else if(txFilter==='venmo') list=list.filter(t=>isVenmoOut(t)||isVenmoIn(t));
+  else if(txFilter==='transfer') list=list.filter(isTransfer);
+  if(txSearch.trim()){
+    const q=txSearch.trim().toLowerCase();
+    list=list.filter(t=>t.desc.toLowerCase().includes(q)||t.cat.toLowerCase().includes(q));
+  }
+  list.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const controls=`<div class="tx-controls">
+    <button class="tx-btn${txFilter==='all'?' active':''}" onclick="setTxF('all')">All</button>
+    <button class="tx-btn${txFilter==='expense'?' active':''}" onclick="setTxF('expense')">Spending</button>
+    <button class="tx-btn${txFilter==='income'?' active':''}" onclick="setTxF('income')">Payroll</button>
+    <button class="tx-btn${txFilter==='venmo'?' active':''}" onclick="setTxF('venmo')">Venmo</button>
+    <button class="tx-btn${txFilter==='transfer'?' active':''}" onclick="setTxF('transfer')">Transfers</button>
+    <input class="tx-search" type="text" placeholder="Search transactions…" value="${txSearch}" oninput="setTxS(this.value)">
+  </div>`;
+
+  if(!list.length) return controls+'<div class="tx-empty">No transactions match.</div>';
+
+  const rows=list.map(t=>{
+    const d=new Date(t.date+'T12:00:00');
+    const dateStr=MONTHS_SHORT[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();
+    const color=CAT_COLORS[t.cat]||'#666';
+    const isFlag=t.cat==='Venmo'&&t.amount>=500;
+    const amtClass=t.type==='Credit'?'credit':'debit';
+    const sign=t.type==='Credit'?'+':'−';
+    return `<div class="tx-row">
+      <div class="tx-left">
+        <div class="tx-date">${dateStr}</div>
+        <div class="tx-name">${t.desc}</div>
+        <div class="tx-tags">
+          <span class="tx-cat" style="background:${color}18;color:${color}">${t.cat}</span>
+          ${showAcct?`<span class="tx-acct">${t.account}</span>`:''}
+          ${isFlag?'<span class="tx-flag">⚠ Confirm</span>':''}
+        </div>
+      </div>
+      <div class="tx-amount ${amtClass}">${sign}${fmtMoney(t.amount)}</div>
+    </div>`;
+  }).join('');
+
+  return controls+`<div class="tx-list-wrap">${rows}</div>`;
+}
+function setTxF(f){ txFilter=f; renderContentOnly(); }
+function setTxS(v){ txSearch=v; renderContentOnly(); }
+
+// ── RECOMMENDATIONS ───────────────────────────────────────────────────────────
+function renderRecs(txns, mo){
+  const stats=calcStats(txns);
+  const cats=catBreakdown(txns);
+  const recs=[];
+
+  const foodAmt=cats.find(([c])=>c==='Dining & Delivery')?.[1]||0;
+  const foodCount=txns.filter(t=>isSpending(t)&&t.cat==='Dining & Delivery').length;
+  const venmoOut=txns.filter(isVenmoOut).reduce((s,t)=>s+t.amount,0);
+  const venmoIn=txns.filter(isVenmoIn).reduce((s,t)=>s+t.amount,0);
+  const net=stats.net;
+  const savRate=stats.totalIn>0?(net/stats.totalIn*100):0;
+  const foodShareOfSpend=stats.spendTotal>0?foodAmt/stats.spendTotal:0;
+
+  // Food
+  if(foodCount>0){
+    const avg=foodAmt/foodCount;
+    if(foodShareOfSpend>0.25){
+      recs.push({type:'critical',tag:'Food Spending',title:'Food is the biggest spending category',body:`<strong>${Math.round(foodShareOfSpend*100)}% of spending</strong> — ${fmtMoney(foodAmt)} across ${foodCount} transactions, averaging <strong>${fmtMoney(avg)} per visit</strong>. This is the clearest opportunity to cut back.`});
+    } else if(foodCount>15){
+      recs.push({type:'warning',tag:'Habit',title:'Eating out is a frequent habit',body:`${foodCount} food/coffee transactions. Cooking a few meals a week could save <strong>${fmtMoney(foodAmt*0.3)}</strong> a month.`});
+    }
+  }
+
+  // Net position
+  if(net<0){
+    recs.push({type:'critical',tag:'Deficit',title:'Spending more than coming in',body:`Total in was <strong>${fmtMoney(stats.totalIn)}</strong>, spending was <strong>${fmtMoney(stats.spendTotal)}</strong> — a <strong>${fmtMoney(Math.abs(net))} gap</strong>. Worth understanding what covered the difference.`});
+  } else if(savRate<15){
+    recs.push({type:'warning',tag:'Thin Margin',title:'Very little left over',body:`Only <strong>${fmtMoney(net)}</strong> left after spending (${Math.round(savRate)}% of total in). Part of that came from Venmo — not guaranteed every month.`});
+  } else if(savRate>=20){
+    recs.push({type:'positive',tag:'Good Position',title:'More coming in than going out',body:`Kept <strong>${fmtMoney(net)}</strong> — ${Math.round(savRate)}% of total in. Once Venmo flows are categorized the picture will be even clearer.`});
+  }
+
+  // No payroll
+  if(stats.payrollTotal===0){
+    recs.push({type:'critical',tag:'No Payroll',title:'No paycheck this period',body:`Zero payroll recorded. All ${fmtMoney(stats.totalIn)} in came from Venmo or other sources — not a reliable baseline to budget from.`});
+  }
+
+  // Venmo still uncategorized
+  if(venmoOut>1000){
+    recs.push({type:'info',tag:'Venmo TBD',title:`${fmtMoney(venmoOut)} out via Venmo — purpose unknown`,body:`Once Saliba explains what these transfers were for, they'll be reclassified into real categories and the spending picture will be much clearer.`});
+  }
+
+  // Cash withdrawals
+  const cashAmt=cats.find(([c])=>c==='Cash Withdrawal')?.[1]||0;
+  if(cashAmt>200){
+    recs.push({type:'warning',tag:'Blind Spot',title:'Cash withdrawals are untrackable',body:`<strong>${fmtMoney(cashAmt)}</strong> taken out as cash. Once it leaves the account there's no record of what it bought.`});
+  }
+
+  // Gas / car
+  const gasAmt=cats.find(([c])=>c==='Gas / Fuel')?.[1]||0;
+  if(gasAmt>300&&!mo){
+    recs.push({type:'info',tag:'Transportation',title:'Gas spend is significant',body:`<strong>${fmtMoney(gasAmt)}</strong> on fuel over this period. If driving patterns stay the same, that's roughly <strong>${fmtMoney(gasAmt/6)}/month</strong> just on gas.`});
+  }
+
+  if(!recs.length) return '';
+
+  return `<div class="rec-section">
+    <div class="rec-header">Recommendations</div>
+    <div class="rec-grid">${recs.map(r=>`
+      <div class="rec-card ${r.type}">
+        <div class="rec-tag">${r.tag}</div>
+        <div class="rec-title">${r.title}</div>
+        <div class="rec-body">${r.body}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── SUMMARY CARD ──────────────────────────────────────────────────────────────
+function renderSummaryCard(txns, label){
+  const stats=calcStats(txns);
+  const cats=catBreakdown(txns);
+  const net=stats.incTotal-stats.expTotal;
+  const avgMonthlySpend=month?stats.expTotal:(()=>{
+    const months=getMonths(); return months.length?stats.expTotal/months.length:0;
+  })();
+
+  return `<div class="stats-grid">
+    <div class="stat">
+      <div class="stat-label">Payroll</div>
+      <div class="stat-value positive">${fmtMoney(stats.payrollTotal)}</div>
+      <div class="stat-sub">fixed income</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total In</div>
+      <div class="stat-value positive">${fmtMoney(stats.totalIn)}</div>
+      <div class="stat-sub">payroll + venmo + other</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Spending</div>
+      <div class="stat-value negative">${fmtMoney(stats.spendTotal)}</div>
+      <div class="stat-sub">${stats.spendCount} transactions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Net</div>
+      <div class="stat-value ${stats.net>=0?'positive':'negative'}">${stats.net>=0?'+':'−'}${fmtMoney(Math.abs(stats.net))}</div>
+      <div class="stat-sub">${month?'this month':(getMonths().length+' months tracked')}</div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Income vs Spending<span class="card-title-right">${label}</span></div>
+      ${renderFlowTable(stats)}
+    </div>
+    <div class="card">
+      <div class="card-title">Spending by Category</div>
+      ${renderCatBars(cats, stats.expTotal)}
+    </div>
+  </div>`;
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function renderContent(){
+  const txns = month ? getMonthTxns(month) : filtered();
+  const label = month ? (()=>{const[y,m]=month.split('-');return MONTHS_SHORT[parseInt(m)-1]+' '+y;})() : 'All Time';
+  const showAcct = acct==='All';
+
+  let html = renderSummaryCard(txns, label);
+  if(month){
+    html += `<div class="card" style="margin-bottom:10px">
+      <div class="card-title">Transactions · ${label} <span class="card-title-right" style="color:var(--muted2);font-size:.65rem">${txns.length} total</span></div>
+      ${renderTxList(txns, showAcct)}
+    </div>`;
+  }
+  html += renderRecs(txns, !!month);
+
+  document.getElementById('content').innerHTML=html;
+  renderMonthRail();
+}
+
+function renderContentOnly(){
+  if(!month) return;
+  const txns=getMonthTxns(month);
+  const label=(()=>{const[y,m]=month.split('-');return MONTHS_SHORT[parseInt(m)-1]+' '+y;})();
+  const showAcct=acct==='All';
+  const txCard=`<div class="card" style="margin-bottom:10px">
+    <div class="card-title">Transactions · ${label} <span class="card-title-right" style="color:var(--muted2);font-size:.65rem">${txns.length} total</span></div>
+    ${renderTxList(txns, showAcct)}
+  </div>`;
+  const cards=document.querySelectorAll('.card');
+  const last=cards[cards.length-1];
+  if(last) last.outerHTML=txCard;
+  const s=document.querySelector('.tx-search');
+  if(s&&txSearch){s.focus();s.setSelectionRange(txSearch.length,txSearch.length);}
+}
+
+function go(){
+  renderAcctTabs();
+  renderMonthRail();
+  renderContent();
+}
+
+go();
+</script>
+</body>
+</html>
